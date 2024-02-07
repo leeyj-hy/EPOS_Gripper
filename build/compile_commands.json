@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/yj/EPOS/EPOS_GRIPPER/build",
+  "command": "/usr/bin/g++   -g -Wall -fPIE -o CMakeFiles/EPOS_GRIPPER.dir/Epos4_force_test.cpp.o -c /home/yj/EPOS/EPOS_GRIPPER/Epos4_force_test.cpp",
+  "file": "/home/yj/EPOS/EPOS_GRIPPER/Epos4_force_test.cpp"
+}
+]
