@@ -1,1 +1,0 @@
-/usr/bin/g++ -g -Wall -rdynamic CMakeFiles/EPOS_GRIPPER.dir/Epos4_force_test.cpp.o -o EPOS_GRIPPER  -lEposCmd 
