@@ -1,9 +1,9 @@
 //============================================================================
-// Name        : Epos4_force_test.cpp
+// Name        : Epos4_test.cpp
 // Author      : YongJae Lee
 // Version     : 0.1
 // Copyright   : maxon motor ag 2014-2021
-// Description : Epos controller force gripper test in C++
+// Description : Epos controller test in C++
 //============================================================================
 
 
@@ -41,7 +41,6 @@ using namespace std;
 
 
 
-
 void* g_pKeyHandle = 0;
 unsigned short g_usNodeId = 1;
 string g_deviceName;
@@ -67,6 +66,8 @@ void  SetDefaultParameters();
 int  EposSetMotorType();
 int  EposSetMotorParameter();
 int EposHaltPositionMovement(HANDLE p_DeviceHandle, unsigned short p_usNodeId, unsigned int & p_rlErrorCode);
+int SetGripperHomePosition(HANDLE p_DeviceHandle, unsigned short p_usNodeId, unsigned int & p_rlErrorCode);
+
 
 //example code start
 void LogError(string functionName, int p_lResult, unsigned int p_ulErrorCode)
@@ -345,11 +346,85 @@ int EposSetMode(HANDLE p_DeviceHandle, unsigned short p_usNodeId, unsigned int &
 	msg << "set profile current mode, node = " << p_usNodeId;
 	LogInfo(msg.str());
 
-	if(VCS_ActivateCurrentMode(p_DeviceHandle, p_usNodeId, &p_rlErrorCode) == 0)
+//	if(VCS_ActivateCurrentMode(p_DeviceHandle, p_usNodeId, &p_rlErrorCode) == 0)
+//	{
+//		LogError("VCS_ActivateCurrentMode", lResult, p_rlErrorCode);
+//		lResult = MMC_FAILED;
+//	}
+  if(VCS_ActivateProfilePositionMode(p_DeviceHandle, p_usNodeId, &p_rlErrorCode) == 0)
 	{
-		LogError("VCS_ActivateCurrentMode", lResult, p_rlErrorCode);
+		LogError("VCS_ActivateProfilePositionMode", lResult, p_rlErrorCode);
 		lResult = MMC_FAILED;
 	}
+
+  return lResult;
+}
+
+int SetGripperHomePosition(HANDLE p_DeviceHandle, unsigned short p_usNodeId, unsigned int & p_rlErrorCode)
+{
+  int lResult = MMC_SUCCESS;
+	stringstream msg;
+  unsigned int l_HomingAcceleration = 1000;
+  unsigned int l_SpeedSwitch = 150;
+  unsigned int l_SpeedIndex = 150;
+  unsigned int l_HomeOffset = 0;
+  unsigned short l_CurrentThreshold = 1000;
+  int l_HomePosition = 0;
+  int l_Timeout = 5000;
+
+  signed char l_HomingMethod = 18; //HM_POSITIVE_LIMIT_SWITCH
+
+
+	msg << "set gripper home position, node = " << p_usNodeId;
+	LogInfo(msg.str());
+  if(VCS_ActivateHomingMode(p_DeviceHandle, p_usNodeId, &p_rlErrorCode) == 0)
+	{
+		LogError("VCS_SetHomingParameter", lResult, p_rlErrorCode);
+		lResult = MMC_FAILED;
+	}
+
+  if(VCS_SetHomingParameter(p_DeviceHandle, p_usNodeId, l_HomingAcceleration, l_SpeedSwitch, l_SpeedIndex, l_HomeOffset, l_CurrentThreshold, l_HomePosition,  &p_rlErrorCode) == 0)
+	{
+		LogError("VCS_SetHomingParameter", lResult, p_rlErrorCode);
+		lResult = MMC_FAILED;
+	}
+  if(VCS_FindHome(p_DeviceHandle, p_usNodeId, l_HomingMethod, &p_rlErrorCode) == 0)
+	{
+		LogError("VCS_FindHome", lResult, p_rlErrorCode);
+		lResult = MMC_FAILED;
+	}
+  if(VCS_WaitForHomingAttained(p_DeviceHandle, p_usNodeId, l_Timeout, &p_rlErrorCode) == 0)
+	{
+		LogError("VCS_WaitForHomingAttained", lResult, p_rlErrorCode);
+		lResult = MMC_FAILED;
+	}
+  return lResult;
+}
+
+int EposPositionFeedback(HANDLE p_DeviceHandle, unsigned short p_usNodeId, int* p_Positionals , unsigned int & p_rlErrorCode)
+{
+  int lResult = MMC_SUCCESS;
+  stringstream msg;
+
+  if(VCS_GetPositionIs(p_DeviceHandle, p_usNodeId, p_Positionals, &p_rlErrorCode)==0)
+  {
+    msg<<"pos : "<< p_Positionals;
+    LogInfo(msg.str());
+    lResult = MMC_FAILED;
+  }
+  return lResult;
+}
+
+int EposMovementStatus(HANDLE p_DeviceHandle, unsigned short p_usNodeId, int* l_status , unsigned int & p_rlErrorCode)
+{
+  int lResult = MMC_SUCCESS;
+  stringstream msg;
+  if(VCS_GetMovementState(p_DeviceHandle, p_usNodeId, l_status, &p_rlErrorCode) == 0)
+	{
+		LogError("VCS_GetMovementState", lResult, p_rlErrorCode);
+		lResult = MMC_FAILED;
+	}
+
   return lResult;
 }
 
@@ -357,12 +432,14 @@ int EposSetMode(HANDLE p_DeviceHandle, unsigned short p_usNodeId, unsigned int &
 
 int main(int argc, char** argv)
 {
-  
+
   char keyInput;
   int lResult = MMC_FAILED;
   unsigned int ulErrorCode = 0;
   unsigned int lErrorCode = 0;
 	SetDefaultParameters();
+  int m_Position = 0;
+  int m_status = 0;
 
   signal(SIGINT, INThandler);
 
@@ -374,6 +451,11 @@ int main(int argc, char** argv)
   if((lResult = PrepareDemo(&ulErrorCode))!=MMC_SUCCESS)
 			{
 				LogError("PrepareDemo", lResult, ulErrorCode);
+				return lResult;
+			}
+  if((lResult = SetGripperHomePosition(g_pKeyHandle, g_usNodeId, lErrorCode))!=MMC_SUCCESS)
+			{
+				LogError("SetGripperHome", lResult, ulErrorCode);
 				return lResult;
 			}
   if((lResult = EposSetMode(g_pKeyHandle, g_usNodeId, lErrorCode))!=MMC_SUCCESS)
@@ -395,35 +477,33 @@ int main(int argc, char** argv)
 	// 	}
   while(1)
   {
-    stringstream msg;
+    //EposPositionFeedback(g_pKeyHandle, g_usNodeId, &m_Position, lErrorCode);
+    
     cin>>keyInput;
-    if(keyInput == 'w' || keyInput == 'W')
+    if(keyInput == 'w' || keyInput == 'W') //open
     {
-      //EposMoveto(g_pKeyHandle, g_usNodeId, lErrorCode, 5000);
-      EposGoalCurrent(g_pKeyHandle, g_usNodeId, lErrorCode, 500);
+      EposMoveto(g_pKeyHandle, g_usNodeId, lErrorCode, 0);
+      //EposGoalCurrent(g_pKeyHandle, g_usNodeId, lErrorCode, 500);
       keyInput = NULL;
-      msg << "Open gripper ";
-      LogInfo(msg.str());
     }
-    else if(keyInput == 's' || keyInput == 'S')
+    else if(keyInput == 's' || keyInput == 'S') //close
     {
-      //EposMoveto(g_pKeyHandle, g_usNodeId, lErrorCode, -10000);
-      EposGoalCurrent(g_pKeyHandle, g_usNodeId, lErrorCode, -1000);
+      EposMoveto(g_pKeyHandle, g_usNodeId, lErrorCode, -170);
+      //EposGoalCurrent(g_pKeyHandle, g_usNodeId, lErrorCode, -1000);
       keyInput = NULL;
-      msg << "Close gripper ";
-      LogInfo(msg.str());
     }
-    else if(keyInput == 'a' || keyInput == 'A')
+    else if(keyInput == 'a' || keyInput == 'A') //apply zero force
     {
-      //EposMoveto(g_pKeyHandle, g_usNodeId, lErrorCode, 0);
-      EposGoalCurrent(g_pKeyHandle, g_usNodeId, lErrorCode, 0);
+      EposMoveto(g_pKeyHandle, g_usNodeId, lErrorCode, 0);
+      //EposGoalCurrent(g_pKeyHandle, g_usNodeId, lErrorCode, 0);
       keyInput = NULL;
-      msg << "apply 0 force";
-      LogInfo(msg.str());
     }
     else{
       keyInput = NULL;
     }
+    
+    
+
     // lResult = EposProfilePositionMode(g_pKeyHandle, g_usNodeId, lErrorCode);
 
 		// if(lResult != MMC_SUCCESS)
@@ -439,9 +519,13 @@ int main(int argc, char** argv)
 		// 	}
 		// }
     
-    
+    do {
+      stringstream msg;
+      EposMovementStatus(g_pKeyHandle, g_usNodeId, &m_status , lErrorCode);
+      msg << "Is Goal Reached? " << m_status <<endl;
+      LogInfo(msg.str());
+    }while(m_status==0);
     
   }
 
-  
 }
