@@ -522,7 +522,14 @@ int main(int argc, char** argv)
     do {
       stringstream msg;
       EposMovementStatus(g_pKeyHandle, g_usNodeId, &m_status , lErrorCode);
-      msg << "Is Goal Reached? " << m_status <<endl;
+      if(m_status)
+      {
+        msg << "Goal Reached" <<endl;
+      }
+      else
+      {
+        msg << "Moving.." <<endl;
+      }
       LogInfo(msg.str());
     }while(m_status==0);
     
