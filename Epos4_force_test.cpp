@@ -477,9 +477,8 @@ int main(int argc, char** argv)
 	// 	}
   while(1)
   {
-    //EposPositionFeedback(g_pKeyHandle, g_usNodeId, &m_Position, lErrorCode);
     
-    cin>>keyInput;
+    cin>>keyInput;                                                            //modify keyInput for another input.
     if(keyInput == 'w' || keyInput == 'W') //open
     {
       EposMoveto(g_pKeyHandle, g_usNodeId, lErrorCode, 0);
@@ -503,25 +502,9 @@ int main(int argc, char** argv)
     }
     
     
-
-    // lResult = EposProfilePositionMode(g_pKeyHandle, g_usNodeId, lErrorCode);
-
-		// if(lResult != MMC_SUCCESS)
-		// {
-		// 	LogError("DemoProfilePositionMode", lResult, lErrorCode);
-		// }
-		// else
-		// {
-		// 	if(VCS_SetDisableState(g_pKeyHandle, g_usNodeId, &lErrorCode) == 0)
-		// 	{
-		// 		LogError("VCS_SetDisableState", lResult, lErrorCode);
-		// 		lResult = MMC_FAILED;
-		// 	}
-		// }
-    
     do {
       stringstream msg;
-      EposMovementStatus(g_pKeyHandle, g_usNodeId, &m_status , lErrorCode);
+      EposMovementStatus(g_pKeyHandle, g_usNodeId, &m_status , lErrorCode);                     //if gripper reaches goal position, m_status returns 1.
       if(m_status)
       {
         msg << "Goal Reached" <<endl;
